@@ -9,7 +9,11 @@ Library             RPA.Browser.Selenium
 Library             RPA.HTTP
 Library             RPA.Tables
 Library             RPA.PDF
+Library             RPA.Archive
+Library             RPA.FileSystem
 
+*** Variables ***
+${PDF_TEMP_OUTPUT_DIRECTORY}=       ${CURDIR}${/}temp
 
 *** Tasks ***
 Order robots from RobotSpareBin Industries Inc
@@ -17,8 +21,9 @@ Order robots from RobotSpareBin Industries Inc
     Download the csv file
     ${csv_file}    Read csv file into Table
     Order robots and save relevant data    ${csv_file}
-
+    
 Create ZIP archive of the receipts and the images
+    Create ZIP archive of the receipts and the images
 
 *** Keywords ***
 Open the robot order website
@@ -42,10 +47,11 @@ Order robots and save relevant data
         Close the annoying modal
         Input One Order    ${row}
         ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
-        ${screenshot}=    Take a screenshot of the robot    ${row}[Order number]
+        ${screenshot}    Take a screenshot of the robot    ${row}[Order number]
         Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}
         Click Button    order-another
     END
+
 
 Input One Order
     [Arguments]    ${row}
@@ -77,12 +83,15 @@ Embed the robot screenshot to the receipt PDF file
     [Arguments]    ${screenshot}    ${pdf}
     Open Pdf    ${pdf}
     Add Watermark Image To Pdf    ${screenshot}    ${pdf}
-    Close pdf    ${pdf}     
+    Close pdf    ${pdf}
 
 Take a screenshot of the robot
     [Arguments]    ${order_number}
-    ${screenshot}=    Screenshot    robot-preview-image    ${OUTPUT_DIR}${/}${order_number}
+    ${screenshot}    Screenshot    robot-preview-image    screenshots/${order_number}
     RETURN    ${screenshot}
 
 Create ZIP archive of the receipts and the images
-
+    ${zip_file_name}=    Set Variable    ${OUTPUT_DIR}/PDFs.zip
+    Archive Folder With Zip
+    ...    ${OUTPUT_DIR}
+    ...    ${zip_file_name}
