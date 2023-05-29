@@ -74,9 +74,9 @@ Store the receipt as a PDF file
 Embed the robot screenshot to the receipt PDF file
     [Arguments]    ${screenshot}    ${pdf}
     Open Pdf    ${pdf}
-    Add Files To Pdf    ${screenshot}
+    Add Watermark Image To Pdf    ${screenshot}    ${pdf}
     Close pdf    ${pdf}     
-    
+
 Take a screenshot of the robot
     [Arguments]    ${order_number}
     ${screenshot}=    Screenshot    robot-preview-image    ${OUTPUT_DIR}${/}${order_number}
