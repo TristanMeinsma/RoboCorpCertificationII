@@ -18,6 +18,8 @@ Order robots from RobotSpareBin Industries Inc
     ${csv_file}    Read csv file into Table
     Order robots and save relevant data    ${csv_file}
 
+Create ZIP archive of the receipts and the images
+
 *** Keywords ***
 Open the robot order website
     Open Available Browser    https://robotsparebinindustries.com/#/robot-order
@@ -81,3 +83,6 @@ Take a screenshot of the robot
     [Arguments]    ${order_number}
     ${screenshot}=    Screenshot    robot-preview-image    ${OUTPUT_DIR}${/}${order_number}
     RETURN    ${screenshot}
+
+Create ZIP archive of the receipts and the images
+
