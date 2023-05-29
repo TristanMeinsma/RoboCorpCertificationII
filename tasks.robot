@@ -5,25 +5,39 @@ Documentation       Orders robots from RobotSpareBin Industries Inc.
 ...                 Embeds the screenshot of the robot to the PDF receipt.
 ...                 Creates ZIP archive of the receipts and the images.
 
-Library             RPA.Browser.Selenium
+Library             RPA.Browser.Selenium    auto_close=${FALSE}
 Library             RPA.HTTP
 Library             RPA.Tables
 Library             RPA.PDF
 Library             RPA.Archive
 Library             RPA.FileSystem
+Library             RPA.RobotLogListener
 
-*** Variables ***
-${PDF_TEMP_OUTPUT_DIRECTORY}=       ${CURDIR}${/}temp
 
 *** Tasks ***
 Order robots from RobotSpareBin Industries Inc
     Open the robot order website
     Download the csv file
     ${csv_file}    Read csv file into Table
-    Order robots and save relevant data    ${csv_file}
-    
-Create ZIP archive of the receipts and the images
-    Create ZIP archive of the receipts and the images
+
+    FOR    ${row}    IN    @{csv_file}
+        Close the annoying modal
+
+        ${status}    Check Receipt Visibility    ${row}
+        IF    ${status} == ${TRUE}
+            Log    ${status}
+            ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
+            ${screenshot}    Take a screenshot of the robot    ${row}[Order number]
+            Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}
+            Click Button    order-another
+        ELSE
+            Input One Order    ${row}
+        END
+    END
+
+# Create ZIP archive of the receipts and the images
+    # Create ZIP archive of the receipts and the images
+
 
 *** Keywords ***
 Open the robot order website
@@ -39,20 +53,6 @@ Read csv file into Table
 Close the annoying modal
     Wait And Click Button    css:.btn.btn-dark
 
-Order robots and save relevant data
-    [Arguments]    ${csv_file}
-
-    # LOOPING THESE STEPS
-    FOR    ${row}    IN    @{csv_file}
-        Close the annoying modal
-        Input One Order    ${row}
-        ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
-        ${screenshot}    Take a screenshot of the robot    ${row}[Order number]
-        Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}
-        Click Button    order-another
-    END
-
-
 Input One Order
     [Arguments]    ${row}
 
@@ -62,13 +62,7 @@ Input One Order
     Input Text    xpath=//input[@placeholder='Enter the part number for the legs']    ${row}[Legs]
     Input Text    address    ${row}[Address]
     Click Button    preview
-
-    # LAST BUTTON CAN RESULT IN ERROR
-    TRY
-        Wait Until Keyword Succeeds    3x    1s    Click Button    order
-    EXCEPT    AS    ${error}
-        Log    ${error}
-    END
+    Click Button    order
 
 Store the receipt as a PDF file
     [Arguments]    ${order_number}
@@ -91,7 +85,13 @@ Take a screenshot of the robot
     RETURN    ${screenshot}
 
 Create ZIP archive of the receipts and the images
-    ${zip_file_name}=    Set Variable    ${OUTPUT_DIR}/PDFs.zip
+    ${zip_file_name}    Set Variable    ${OUTPUT_DIR}/PDFs.zip
     Archive Folder With Zip
     ...    ${OUTPUT_DIR}
     ...    ${zip_file_name}
+
+Check Receipt Visibility
+    [Arguments]    ${row}
+    Input One Order    ${row}
+    ${status}    Run Keyword And Return Status    Element Should Be Visible    receipt
+    RETURN    ${status}
