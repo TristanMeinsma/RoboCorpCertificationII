@@ -16,9 +16,8 @@ Order robots from RobotSpareBin Industries Inc
     Open the robot order website
     Download the csv file
     ${csv_file}    Read csv file into Table
-    Close the annoying modal
-    Fill the form    ${csv_file}
-
+    Order robots and save relevant data    ${csv_file}
+Save the order HTML receipt as a PDF file
 
 *** Keywords ***
 Open the robot order website
@@ -34,21 +33,28 @@ Read csv file into Table
 Close the annoying modal
     Wait And Click Button    css:.btn.btn-dark
 
-Fill the form
+Order robots and save relevant data
     [Arguments]    ${csv_file}
+
+    # LOOPING THESE STEPS
     FOR    ${row}    IN    @{csv_file}
+        Close the annoying modal
         Input One Order    ${row}
         ${pdf}    Store the receipt as a PDF file    ${row}
     END
 
 Input One Order
     [Arguments]    ${row}
+
+    # ENTERING PARTS
+    Wait Until Element Is Visible    head
     Select From List By Index    head    ${row}[Head]
     Select Radio Button    body    ${row}[Body]
     Input Text    xpath=//input[@placeholder='Enter the part number for the legs']    ${row}[Legs]
     Input Text    address    ${row}[Address]
     Click Button    preview
-
+    
+    # LAST BUTTON CAN RESULT IN ERROR
     TRY
         Wait Until Keyword Succeeds    3x    1s    Click Button    order
     EXCEPT    AS    ${error}
@@ -60,6 +66,6 @@ Store the receipt as a PDF file
     Wait Until Element Is Visible    receipt
     ${receipt}    Get Element Attribute    receipt    outerHTML
 
-    # geen idee wtf hier fout gaat, iets met de location
     Html To Pdf    ${receipt}    ${OUTPUT_DIR}${/}${row}[Order number].pdf
+    Click Button    order-another
     RETURN    ${receipt}
