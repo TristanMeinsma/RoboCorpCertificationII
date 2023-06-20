@@ -21,23 +21,32 @@ Order robots from RobotSpareBin Industries Inc
     ${csv_file}    Read csv file into Table
 
     FOR    ${row}    IN    @{csv_file}
-        Close the annoying modal
 
-        ${status}    Check Receipt Visibility    ${row}
-        IF    ${status} == ${TRUE}
-            Log    ${status}
+        Close the annoying modal
+        Input One Order    ${row}
+
+        TRY
             ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
-            ${screenshot}    Take a screenshot of the robot    ${row}[Order number]
-            Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}
-            Click Button    order-another
-        ELSE
+        EXCEPT 
+            Reload Page
+            Close the annoying modal   
             Input One Order    ${row}
+            TRY
+                ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
+            EXCEPT
+                Reload Page
+                Close the annoying modal   
+                Input One Order    ${row}
+                ${pdf}    Store the receipt as a PDF file    ${row}[Order number]
+            END
         END
+        
+        ${screenshot}    Take a screenshot of the robot    ${row}[Order number]
+        Embed the robot screenshot to the receipt PDF file    ${screenshot}    ${pdf}
+        Click Button    order-another
     END
 
 # Create ZIP archive of the receipts and the images
-    # Create ZIP archive of the receipts and the images
-
 
 *** Keywords ***
 Open the robot order website
@@ -57,16 +66,16 @@ Input One Order
     [Arguments]    ${row}
 
     Wait Until Element Is Visible    head
-    Select From List By Index    head    ${row}[Head]
-    Select Radio Button    body    ${row}[Body]
-    Input Text    xpath=//input[@placeholder='Enter the part number for the legs']    ${row}[Legs]
-    Input Text    address    ${row}[Address]
-    Click Button    preview
-    Click Button    order
+    Select From List By Index        head    ${row}[Head]
+    Select Radio Button              body    ${row}[Body]
+    Input Text                       xpath=//input[@placeholder='Enter the part number for the legs']    ${row}[Legs]
+    Input Text                       address    ${row}[Address]
+    Click Button                     preview
+    Click Button                     order
 
 Store the receipt as a PDF file
     [Arguments]    ${order_number}
-    Wait Until Element Is Visible    receipt
+    Wait Until Element Is Visible          receipt
     ${receipt}    Get Element Attribute    receipt    outerHTML
 
     Html To Pdf    ${receipt}    ${OUTPUT_DIR}${/}${order_number}.pdf
@@ -89,9 +98,3 @@ Create ZIP archive of the receipts and the images
     Archive Folder With Zip
     ...    ${OUTPUT_DIR}
     ...    ${zip_file_name}
-
-Check Receipt Visibility
-    [Arguments]    ${row}
-    Input One Order    ${row}
-    ${status}    Run Keyword And Return Status    Element Should Be Visible    receipt
-    RETURN    ${status}
